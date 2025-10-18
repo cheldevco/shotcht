@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Shooter Game без границ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            background: #0f3460;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px black;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        #score {
+            margin-bottom: 5px;
+        }
+        
+        #health {
+            color: #e74c3c;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .control-button {
+            width: 70px;
+            height: 70px;
+            background: rgba(52, 152, 219, 0.7);
+            border: 2px solid #2980b9;
+            border-radius: 50%;
+            margin: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .control-button:active {
+            background: rgba(41, 128, 185, 0.9);
+        }
+        
+        #fireButton {
+            background: rgba(231, 76, 60, 0.7);
+            border: 2px solid #c0392b;
+        }
+        
+        #fireButton:active {
+            background: rgba(192, 57, 43, 0.9);
+        }
+        
+        #dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+        }
+        
+        #up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        #left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        
+        #right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+        
+        #down {
+            grid-column: 2;
+            grid-row: 3;
+        }
+        
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 52, 96, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #3498db;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        p {
+            margin: 10px 0;
+            font-size: 18px;
+            max-width: 80%;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Стили для читов */
+        #cheatIcon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(46, 204, 113, 0.8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.7);
+            animation: float 3s ease-in-out infinite;
+            user-select: none;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        #cheatMenu {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #2ecc71;
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 200px;
+        }
+        
+        .cheat-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .cheat-option:hover {
+            background: rgba(46, 204, 113, 0.2);
+        }
+        
+        .cheat-toggle {
+            width: 40px;
+            height: 20px;
+            background: #7f8c8d;
+            border-radius: 10px;
+            position: relative;
+            transition: background 0.3s;
+        }
+        
+        .cheat-toggle.active {
+            background: #2ecc71;
+        }
+        
+        .cheat-toggle::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        
+        .cheat-toggle.active::after {
+            transform: translateX(20px);
+        }
+        
+        .cheat-button {
+            padding: 8px 12px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .cheat-button:hover {
+            background: #c0392b;
+        }
+        
+        .aim-indicator {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #2ecc71;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .control-button {
+                width: 60px;
+                height: 60px;
+                font-size: 20px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            #cheatIcon {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+            
+            #cheatMenu {
+                min-width: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui">
+            <div id="score">Очки: 0</div>
+            <div id="health">Здоровье: 100</div>
+        </div>
+        
+        <!-- Плавающая иконка для читов -->
+        <div id="cheatIcon">⚡</div>
+        
+        <!-- Меню читов -->
+        <div id="cheatMenu">
+            <div class="cheat-option">
+                <span>AIM</span>
+                <div class="cheat-toggle" id="aimToggle"></div>
+            </div>
+            <div class="cheat-option">
+                <span>Aimbot</span>
+                <div class="cheat-toggle" id="aimbotToggle"></div>
+            </div>
+            <div class="cheat-option">
+                <span>Фарминг очков</span>
+                <button class="cheat-button" id="farmPoints">+100 очков</button>
+            </div>
+            <div class="cheat-option">
+                <span>Бессмертие</span>
+                <div class="cheat-toggle" id="godModeToggle"></div>
+            </div>
+        </div>
+        
+        <!-- Индикатор прицела -->
+        <div class="aim-indicator" id="aimIndicator"></div>
+        
+        <div id="controls">
+            <div class="control-group">
+                <div id="dpad">
+                    <div class="control-button" id="up">↑</div>
+                    <div class="control-button" id="left">←</div>
+                    <div class="control-button" id="right">→</div>
+                    <div class="control-button" id="down">↓</div>
+                </div>
+                <div>Движение</div>
+            </div>
+            
+            <div class="control-group">
+                <div class="control-button" id="fireButton">🔥</div>
+                <div>Стрельба</div>
+            </div>
+        </div>
+        
+        <div id="startScreen">
+            <h1>3D Shooter Game без границ</h1>
+            <p>Уничтожьте всех ботов, чтобы выиграть!</p>
+            <p>Управление:</p>
+            <p>ПК: WASD для движения, мышь для стрельбы</p>
+            <p>Телефон: Кнопки для движения и стрельбы</p>
+            <p>Нажмите на ⚡ для активации читов</p>
+            <p>Теперь игрок может свободно перемещаться за пределы экрана!</p>
+            <button id="startButton">Начать игру</button>
+        </div>
+        
+        <div id="gameOverScreen" class="hidden">
+            <h1 id="gameOverTitle">Игра окончена</h1>
+            <p id="gameOverMessage">Вы проиграли!</p>
+            <p id="finalScore">Очки: 0</p>
+            <button id="restartButton">Играть снова</button>
+        </div>
+    </div>
+
+    <script>
+        // Получаем элементы DOM
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const scoreElement = document.getElementById('score');
+        const healthElement = document.getElementById('health');
+        const gameOverTitle = document.getElementById('gameOverTitle');
+        const gameOverMessage = document.getElementById('gameOverMessage');
+        const finalScore = document.getElementById('finalScore');
+        
+        // Элементы управления для мобильных устройств
+        const upButton = document.getElementById('up');
+        const leftButton = document.getElementById('left');
+        const rightButton = document.getElementById('right');
+        const downButton = document.getElementById('down');
+        const fireButton = document.getElementById('fireButton');
+        
+        // Элементы для читов
+        const cheatIcon = document.getElementById('cheatIcon');
+        const cheatMenu = document.getElementById('cheatMenu');
+        const aimToggle = document.getElementById('aimToggle');
+        const aimbotToggle = document.getElementById('aimbotToggle');
+        const farmPointsButton = document.getElementById('farmPoints');
+        const godModeToggle = document.getElementById('godModeToggle');
+        const aimIndicator = document.getElementById('aimIndicator');
+        
+        // Установка размеров canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Игровые переменные
+        let gameActive = false;
+        let score = 0;
+        let playerHealth = 100;
+        let player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 20,
+            color: '#3498db',
+            speed: 5
+        };
+        
+        let bullets = [];
+        let enemies = [];
+        let particles = [];
+        let keys = {};
+        let touchControls = {
+            up: false,
+            left: false,
+            right: false,
+            down: false,
+            fire: false
+        };
+        
+        // Переменные для читов
+        let cheatOptions = {
+            aim: false,
+            aimbot: false,
+            godMode: false
+        };
+        
+        // Класс пули
+        class Bullet {
+            constructor(x, y, targetX, targetY) {
+                this.x = x;
+                this.y = y;
+                this.radius = 5;
+                this.color = '#f1c40f';
+                this.speed = 10;
+                
+                // Расчет направления
+                const angle = Math.atan2(targetY - y, targetX - x);
+                this.velocity = {
+                    x: Math.cos(angle) * this.speed,
+                    y: Math.sin(angle) * this.speed
+                };
+            }
+            
+            update() {
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+        
+        // Класс врага
+        class Enemy {
+            constructor() {
+                this.radius = 25;
+                this.color = '#e74c3c';
+                this.speed = 2;
+                
+                // Случайное появление за пределами экрана
+                const side = Math.floor(Math.random() * 4);
+                const offset = 100; // Отступ от краев экрана
+                
+                switch(side) {
+                    case 0: // сверху
+                        this.x = Math.random() * canvas.width;
+                        this.y = -this.radius - offset;
+                        break;
+                    case 1: // справа
+                        this.x = canvas.width + this.radius + offset;
+                        this.y = Math.random() * canvas.height;
+                        break;
+                    case 2: // снизу
+                        this.x = Math.random() * canvas.width;
+                        this.y = canvas.height + this.radius + offset;
+                        break;
+                    case 3: // слева
+                        this.x = -this.radius - offset;
+                        this.y = Math.random() * canvas.height;
+                        break;
+                }
+                
+                this.health = 30;
+            }
+            
+            update() {
+                // Движение к игроку
+                const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                this.x += Math.cos(angle) * this.speed;
+                this.y += Math.sin(angle) * this.speed;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+                
+                // Отображение здоровья
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.health, this.x, this.y - this.radius - 10);
+            }
+        }
+        
+        // Класс частиц для эффектов
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = Math.random() * 3 + 1;
+                this.color = color;
+                this.velocity = {
+                    x: (Math.random() - 0.5) * 5,
+                    y: (Math.random() - 0.5) * 5
+                };
+                this.alpha = 1;
+                this.decay = 0.015;
+            }
+            
+            update() {
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.alpha -= this.decay;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+                ctx.restore();
+            }
+        }
+        
+        // Функция создания частиц
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+        
+        // Функция стрельбы
+        function shoot(targetX, targetY) {
+            // Если включен aimbot, автоматически выбираем ближайшего врага
+            if (cheatOptions.aimbot && enemies.length > 0) {
+                let closestEnemy = null;
+                let minDistance = Infinity;
+                
+                for (const enemy of enemies) {
+                    const distance = Math.sqrt(
+                        Math.pow(enemy.x - player.x, 2) + 
+                        Math.pow(enemy.y - player.y, 2)
+                    );
+                    
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestEnemy = enemy;
+                    }
+                }
+                
+                if (closestEnemy) {
+                    targetX = closestEnemy.x;
+                    targetY = closestEnemy.y;
+                }
+            }
+            
+            bullets.push(new Bullet(player.x, player.y, targetX, targetY));
+            
+            // Создание частиц при выстреле
+            createParticles(player.x, player.y, '#f1c40f', 5);
+        }
+        
+        // Функция спавна врагов
+        function spawnEnemy() {
+            if (gameActive) {
+                enemies.push(new Enemy());
+                
+                // Увеличиваем частоту спавна со временем
+                const spawnRate = Math.max(500, 2000 - score * 10);
+                setTimeout(spawnEnemy, spawnRate);
+            }
+        }
+        
+        // Функция проверки столкновений
+        function checkCollisions() {
+            // Проверка столкновений пуль с врагами
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const dx = bullets[i].x - enemies[j].x;
+                    const dy = bullets[i].y - enemies[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < bullets[i].radius + enemies[j].radius) {
+                        // Попадание
+                        enemies[j].health -= 10;
+                        
+                        // Создание частиц при попадании
+                        createParticles(bullets[i].x, bullets[i].y, '#e74c3c', 10);
+                        
+                        // Удаление пули
+                        bullets.splice(i, 1);
+                        
+                        // Проверка здоровья врага
+                        if (enemies[j].health <= 0) {
+                            // Уничтожение врага
+                            score += 10;
+                            scoreElement.textContent = `Очки: ${score}`;
+                            
+                            // Создание частиц при уничтожении
+                            createParticles(enemies[j].x, enemies[j].y, '#e74c3c', 20);
+                            
+                            enemies.splice(j, 1);
+                            
+                            // Проверка победы
+                            if (score >= 100) {
+                                gameOver(true);
+                            }
+                        }
+                        
+                        break;
+                    }
+                }
+            }
+            
+            // Проверка столкновений игрока с врагами
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const dx = player.x - enemies[i].x;
+                const dy = player.y - enemies[i].y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.radius + enemies[i].radius) {
+                    // Столкновение с врагом
+                    if (!cheatOptions.godMode) {
+                        playerHealth -= 10;
+                        healthElement.textContent = `Здоровье: ${playerHealth}`;
+                    }
+                    
+                    // Создание частиц при столкновении
+                    createParticles(player.x, player.y, '#3498db', 15);
+                    
+                    // Удаление врага
+                    enemies.splice(i, 1);
+                    
+                    // Проверка здоровья игрока
+                    if (playerHealth <= 0) {
+                        gameOver(false);
+                    }
+                }
+            }
+        }
+        
+        // Функция обновления игры
+        function update() {
+            if (!gameActive) return;
+            
+            // Очистка canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Обновление позиции игрока
+            if (keys['KeyW'] || keys['ArrowUp'] || touchControls.up) {
+                player.y -= player.speed;
+            }
+            if (keys['KeyS'] || keys['ArrowDown'] || touchControls.down) {
+                player.y += player.speed;
+            }
+            if (keys['KeyA'] || keys['ArrowLeft'] || touchControls.left) {
+                player.x -= player.speed;
+            }
+            if (keys['KeyD'] || keys['ArrowRight'] || touchControls.right) {
+                player.x += player.speed;
+            }
+            
+            // УБРАНЫ ГРАНИЦЫ - игрок может свободно перемещаться за пределы экрана
+            
+            // Обновление пуль
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].update();
+                bullets[i].draw();
+                
+                // Удаление пуль только если они ушли слишком далеко
+                const maxDistance = Math.max(canvas.width, canvas.height) * 2;
+                if (Math.abs(bullets[i].x - player.x) > maxDistance || 
+                    Math.abs(bullets[i].y - player.y) > maxDistance) {
+                    bullets.splice(i, 1);
+                }
+            }
+            
+            // Обновление врагов
+            for (let i = 0; i < enemies.length; i++) {
+                enemies[i].update();
+                enemies[i].draw();
+            }
+            
+            // Обновление частиц
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                
+                // Удаление невидимых частиц
+                if (particles[i].alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Отрисовка игрока
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = player.color;
+            ctx.fill();
+            ctx.closePath();
+            
+            // Проверка столкновений
+            checkCollisions();
+            
+            // Продолжение игрового цикла
+            requestAnimationFrame(update);
+        }
+        
+        // Функция окончания игры
+        function gameOver(isWin) {
+            gameActive = false;
+            
+            if (isWin) {
+                gameOverTitle.textContent = 'Победа!';
+                gameOverMessage.textContent = 'Вы уничтожили всех ботов!';
+            } else {
+                gameOverTitle.textContent = 'Игра окончена';
+                gameOverMessage.textContent = 'Вы проиграли!';
+            }
+            
+            finalScore.textContent = `Очки: ${score}`;
+            gameOverScreen.classList.remove('hidden');
+        }
+        
+        // Функция начала игры
+        function startGame() {
+            gameActive = true;
+            score = 0;
+            playerHealth = 100;
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            bullets = [];
+            enemies = [];
+            particles = [];
+            
+            scoreElement.textContent = `Очки: ${score}`;
+            healthElement.textContent = `Здоровье: ${playerHealth}`;
+            
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            
+            // Начало спавна врагов
+            spawnEnemy();
+            
+            // Запуск игрового цикла
+            update();
+        }
+        
+        // Обработчики событий для читов
+        cheatIcon.addEventListener('click', () => {
+            cheatMenu.style.display = cheatMenu.style.display === 'flex' ? 'none' : 'flex';
+        });
+        
+        // Закрытие меню при клике вне его
+        document.addEventListener('click', (e) => {
+            if (!cheatMenu.contains(e.target) && e.target !== cheatIcon) {
+                cheatMenu.style.display = 'none';
+            }
+        });
+        
+        // Переключение читов
+        aimToggle.addEventListener('click', () => {
+            aimToggle.classList.toggle('active');
+            cheatOptions.aim = !cheatOptions.aim;
+            
+            if (cheatOptions.aim) {
+                aimIndicator.style.display = 'block';
+            } else {
+                aimIndicator.style.display = 'none';
+            }
+        });
+        
+        aimbotToggle.addEventListener('click', () => {
+            aimbotToggle.classList.toggle('active');
+            cheatOptions.aimbot = !cheatOptions.aimbot;
+        });
+        
+        godModeToggle.addEventListener('click', () => {
+            godModeToggle.classList.toggle('active');
+            cheatOptions.godMode = !cheatOptions.godMode;
+            
+            if (cheatOptions.godMode) {
+                healthElement.textContent = 'Здоровье: ∞';
+                healthElement.style.color = '#2ecc71';
+            } else {
+                healthElement.textContent = `Здоровье: ${playerHealth}`;
+                healthElement.style.color = '#e74c3c';
+            }
+        });
+        
+        // Фарминг очков
+        farmPointsButton.addEventListener('click', () => {
+            score += 100;
+            scoreElement.textContent = `Очки: ${score}`;
+            
+            // Создание эффекта частиц для визуализации получения очков
+            createParticles(canvas.width / 2, canvas.height / 2, '#f1c40f', 30);
+        });
+        
+        // Обновление позиции индикатора прицела
+        document.addEventListener('mousemove', (e) => {
+            if (cheatOptions.aim) {
+                aimIndicator.style.left = (e.clientX - 10) + 'px';
+                aimIndicator.style.top = (e.clientY - 10) + 'px';
+            }
+        });
+        
+        // Обработчики событий
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+        
+        // Обработчики клавиатуры
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+        
+        // Обработчики мыши для стрельбы
+        canvas.addEventListener('click', (e) => {
+            if (gameActive) {
+                const rect = canvas.getBoundingClientRect();
+                const targetX = e.clientX - rect.left;
+                const targetY = e.clientY - rect.top;
+                shoot(targetX, targetY);
+            }
+        });
+        
+        // Обработчики для мобильного управления
+        function setupTouchControl(button, control) {
+            button.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                touchControls[control] = true;
+            });
+            
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                touchControls[control] = false;
+            });
+            
+            // Для поддержки мыши на ПК
+            button.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                touchControls[control] = true;
+            });
+            
+            button.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                touchControls[control] = false;
+            });
+            
+            button.addEventListener('mouseleave', (e) => {
+                e.preventDefault();
+                touchControls[control] = false;
+            });
+        }
+        
+        setupTouchControl(upButton, 'up');
+        setupTouchControl(leftButton, 'left');
+        setupTouchControl(rightButton, 'right');
+        setupTouchControl(downButton, 'down');
+        
+        fireButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameActive) {
+                // Стрельба в направлении курсора/касания
+                const rect = canvas.getBoundingClientRect();
+                const targetX = rect.left + canvas.width / 2;
+                const targetY = rect.top + canvas.height / 2;
+                shoot(targetX, targetY);
+            }
+        });
+        
+        fireButton.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            if (gameActive) {
+                // Стрельба в направлении курсора/касания
+                const rect = canvas.getBoundingClientRect();
+                const targetX = rect.left + canvas.width / 2;
+                const targetY = rect.top + canvas.height / 2;
+                shoot(targetX, targetY);
+            }
+        });
+        
+        // Предотвращение контекстного меню на кнопках управления
+        document.querySelectorAll('.control-button').forEach(button => {
+            button.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+            });
+        });
+    </script>
+</body>
+</html>
